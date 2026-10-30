@@ -1,21 +1,67 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import connectDB from './config/db';
+
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+
+import connectDB from "./config/db";
+import { startSuricataMonitoring } from "./services/suricata.service";
+import alertRoutes from "./routes/alert.routes";
+import { createServer } from "http";
+import { initializeSocket } from "./services/socket.service";
+
+
 
 dotenv.config();
 
-// Connect to MongoDB
-connectDB();
-
 const app = express();
-const PORT: string | number = process.env.PORT || 5000;
 
+const PORT = process.env.PORT || 4000;
+
+// Middleware
+app.use(cors());
 app.use(express.json());
 
-app.get('/', (req:any, res:any) => {
-  res.json({ message: 'Backend server and MongoDB are ready with TypeScript!' });
+// Welcome route
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Welcome to Night Watch Backend API",
+  });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port http://localhost:${PORT}`);
+// Health check
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Night Watch backend is running",
+  });
 });
+
+// Alert routes
+app.use("/api/alerts", alertRoutes);
+
+// Start server
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    startSuricataMonitoring();
+
+    const httpServer = createServer(app);
+
+// Initialize real-time communication
+initializeSocket(httpServer);
+
+httpServer.listen(PORT, () => {
+  console.log(`Night Watch API running on port ${PORT}`);
+  console.log(`Socket.IO ready on port ${PORT}`);
+});
+  } catch (error) {
+    console.error("Server startup failed:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
+
+export default app;
