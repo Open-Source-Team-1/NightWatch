@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.emitNewAlert = exports.initializeSocket = void 0;
 const socket_io_1 = require("socket.io");
-let io;
+let io = null;
 const initializeSocket = (server) => {
     io = new socket_io_1.Server(server, {
         cors: {
@@ -12,8 +12,8 @@ const initializeSocket = (server) => {
     });
     io.on("connection", (socket) => {
         console.log("Night Watch client connected:", socket.id);
-        socket.on("disconnect", () => {
-            console.log("Client disconnected:", socket.id);
+        socket.on("disconnect", (reason) => {
+            console.log("Night Watch client disconnected:", socket.id, reason);
         });
     });
     console.log("Socket.IO initialized successfully");
@@ -24,10 +24,10 @@ const emitNewAlert = (alert) => {
         console.warn("Socket.IO is not initialized");
         return;
     }
-    const alertData = alert.toObject
+    const alertData = typeof alert.toObject === "function"
         ? alert.toObject()
         : { ...alert };
-    // Do not broadcast the original raw event to dashboard clients.
+    // Never send the original raw Suricata event to clients.
     delete alertData.rawEvent;
     io.emit("new_alert", alertData);
     console.log("New alert broadcast:", alertData.signature);

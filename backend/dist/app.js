@@ -8,25 +8,23 @@ const cors_1 = __importDefault(require("cors"));
 const alert_routes_1 = __importDefault(require("./routes/alert.routes"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
-    origin: "http://localhost:3000"
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
 }));
 app.use(express_1.default.json({ limit: "1mb" }));
 app.use(express_1.default.urlencoded({ extended: true }));
-// Welcome API
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
     res.status(200).json({
         success: true,
-        message: "Welcome to Night Watch Backend API"
+        message: "Welcome to Night Watch Backend API",
     });
 });
-// Health check
-app.get("/api/health", (req, res) => {
+app.get("/api/health", (_req, res) => {
     res.status(200).json({
         success: true,
-        message: "Night Watch backend is running"
+        message: "Night Watch backend is running",
     });
 });
-// Alert API routes
 app.use("/api/alerts", alert_routes_1.default);
 exports.default = app;
 //# sourceMappingURL=app.js.map

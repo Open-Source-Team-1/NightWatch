@@ -1,21 +1,30 @@
-import { Server } from "socket.io";
-import { Server as HttpServer } from "http";
 
-let io: Server;
+import { Server } from "socket.io";
+import { Server as HttpServer } from "node:http";
+
+let io: Server | null = null;
 
 export const initializeSocket = (server: HttpServer): void => {
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      origin:
+        process.env.FRONTEND_URL || "http://localhost:3000",
       methods: ["GET", "POST"],
     },
   });
 
   io.on("connection", (socket) => {
-    console.log("Night Watch client connected:", socket.id);
+    console.log(
+      "Night Watch client connected:",
+      socket.id
+    );
 
-    socket.on("disconnect", () => {
-      console.log("Client disconnected:", socket.id);
+    socket.on("disconnect", (reason) => {
+      console.log(
+        "Night Watch client disconnected:",
+        socket.id,
+        reason
+      );
     });
   });
 
@@ -28,14 +37,17 @@ export const emitNewAlert = (alert: any): void => {
     return;
   }
 
-  const alertData = alert.toObject
+  const alertData = typeof alert.toObject === "function"
     ? alert.toObject()
     : { ...alert };
 
-  // Do not broadcast the original raw event to dashboard clients.
+  // Never send the original raw Suricata event to clients.
   delete alertData.rawEvent;
 
   io.emit("new_alert", alertData);
 
-  console.log("New alert broadcast:", alertData.signature);
+  console.log(
+    "New alert broadcast:",
+    alertData.signature
+  );
 };
