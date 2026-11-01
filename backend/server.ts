@@ -1,21 +1,51 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const connectDB = require('./config/db');
 
-dotenv.config();
+import "dotenv/config";
 
-// Connect to MongoDB
-connectDB();
+import { createServer } from "node:http";
 
-const app = express();
-const PORT: string | number = process.env.PORT || 5000;
+import app from "./app";
+import connectDB from "./config/db";
 
-app.use(express.json());
+import { initializeSocket } from "./services/socket.service";
+import { startSuricataMonitoring } from "./services/suricata.service";
 
-app.get('/', (req:any, res:any) => {
-  res.json({ message: 'Backend server and MongoDB are ready with TypeScript!' });
-});
+const PORT = Number(process.env.PORT) || 4000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port http://localhost:${PORT}`);
-});
+const startServer = async (): Promise<void> => {
+  try {
+    // Step 1: Connect MongoDB.
+    await connectDB();
+
+    // Step 2: Create HTTP server.
+    const httpServer = createServer(app);
+
+    // Step 3: Initialize Socket.IO.
+    initializeSocket(httpServer);
+
+    // Step 4: Start HTTP server.
+    await new Promise<void>((resolve, reject) => {
+      httpServer.once("error", reject);
+
+      httpServer.listen(PORT, () => {
+        resolve();
+      });
+    });
+
+    console.log(
+      `Night Watch API running on port ${PORT}`
+    );
+
+    console.log(
+      `Socket.IO ready on port ${PORT}`
+    );
+
+    // Step 5: Start Suricata monitoring.
+    await startSuricataMonitoring();
+
+  } catch (error) {
+    console.error("Server startup failed:", error);
+    process.exit(1);
+  }
+};
+
+void startServer();
